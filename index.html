@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Proyectos Solares - CLP</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración de Tailwind para usar la fuente Inter y colores de energía solar -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'solar-yellow': '#FFC300',
+                        'solar-blue': '#1e3a8a',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Estilos específicos para la impresión -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        /* Oculta los controles y botones que no deben aparecer en la cotización impresa */
+        @media print {
+            body {
+                background-color: #fff !important;
+                color: #000 !important;
+            }
+            #app-container {
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
+            #input-section, #button-section, #print-button {
+                display: none !important;
+            }
+            #quote-output {
+                display: block !important;
+            }
+            .print-hidden {
+                display: none !important;
+            }
+            .quotation-page {
+                display: block;
+                width: 100%;
+                margin: 0;
+            }
+            h1, h2 {
+                color: #1e3a8a !important;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+        }
+
+        /* Estilos base para la app */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="w-full max-w-4xl bg-white shadow-xl rounded-xl p-6 md:p-10 space-y-8">
+
+        <!-- Título Principal -->
+        <header class="text-center pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-solar-blue">
+                Cotizador de Proyectos Solares (CLP)
+            </h1>
+            <p class="text-gray-500">Calcula los costos y genera una cotización en Pesos Chilenos.</p>
+        </header>
+
+        <!-- Sección de Entrada de Datos -->
+        <section id="input-section" class="grid grid-cols-1 md:grid-cols-2 gap-6 print-hidden">
+
+            <!-- Card: Datos del Proyecto -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md border-l-4 border-solar-yellow">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Datos del Proyecto</h2>
+
+                <label class="block mb-4">
+                    <span class="text-gray-600 font-medium">Potencia del Sistema (kWp)</span>
+                    <input type="number" id="systemPowerKw" value="5.0" min="0.1" step="0.1"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-solar-blue focus:ring focus:ring-solar-blue focus:ring-opacity-50 p-2"
+                        placeholder="Ej: 5.0" oninput="calculateCosts()">
+                </label>
+
+                <label class="block mb-4">
+                    <span class="text-gray-600 font-medium">Costo de Equipos por Watt (CLP/W)</span>
+                    <div class="relative mt-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 font-bold">$</span>
+                        <input type="number" id="costPerWattClp" value="450" min="1" step="10"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-solar-blue focus:ring focus:ring-solar-blue focus:ring-opacity-50 p-2 pl-7"
+                            placeholder="Ej: 450" oninput="calculateCosts()">
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Costo unitario promedio de paneles, inversor y estructuras.</p>
+                </label>
+            </div>
+
+            <!-- Card: Costos y Márgenes -->
+            <div class="bg-gray-50 p-6 rounded-lg shadow-md border-l-4 border-solar-blue">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Costos Operacionales y Margen</h2>
+
+                <label class="block mb-4">
+                    <span class="text-gray-600 font-medium">Costo Fijo de Instalación y Mano de Obra (CLP)</span>
+                    <div class="relative mt-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 font-bold">$</span>
+                        <input type="number" id="installCostFixed" value="1500000" min="0" step="10000"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-solar-blue focus:ring focus:ring-solar-blue focus:ring-opacity-50 p-2 pl-7"
+                            placeholder="Ej: 1500000" oninput="calculateCosts()">
+                    </div>
+                </label>
+
+                <label class="block mb-4">
+                    <span class="text-gray-600 font-medium">Margen de Ganancia (%)</span>
+                    <div class="relative mt-1">
+                        <input type="number" id="profitMarginPercent" value="20" min="0" max="100" step="1"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-solar-blue focus:ring focus:ring-solar-blue focus:ring-opacity-50 p-2 pr-7"
+                            placeholder="Ej: 20" oninput="calculateCosts()">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 font-bold">%</span>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <!-- Sección de Resultados (Resumen) -->
+        <section class="mt-8">
+            <h2 class="text-2xl font-bold text-solar-blue mb-4">Resumen de Costos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+
+                <!-- Costo de Equipos -->
+                <div class="bg-yellow-50 p-4 rounded-lg shadow-md border-b-4 border-solar-yellow">
+                    <p class="text-sm text-gray-600">Costo de Equipos</p>
+                    <p id="equipmentCostDisplay" class="text-2xl font-extrabold text-gray-800 mt-1">$ 0</p>
+                </div>
+
+                <!-- Costo Total del Proyecto (Sin Margen) -->
+                <div class="bg-blue-50 p-4 rounded-lg shadow-md border-b-4 border-solar-blue">
+                    <p class="text-sm text-gray-600">Costo Total (Sin Margen)</p>
+                    <p id="totalProjectCostDisplay" class="text-2xl font-extrabold text-gray-800 mt-1">$ 0</p>
+                </div>
+
+                <!-- Precio Final al Cliente -->
+                <div class="bg-green-500 text-white p-4 rounded-lg shadow-lg border-b-4 border-green-700">
+                    <p class="text-sm font-medium">PRECIO FINAL AL CLIENTE</p>
+                    <p id="finalClientPriceDisplay" class="text-2xl font-extrabold mt-1">$ 0</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Sección de Botón de Impresión -->
+        <section id="button-section" class="flex justify-center pt-6 print-hidden">
+            <button id="print-button" onclick="prepareAndPrintQuote()"
+                    class="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 transform hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 00-2-2h-1V4h3a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2h3zm2 5h6a1 1 0 110 2H7a1 1 0 110-2z" clip-rule="evenodd" />
+                </svg>
+                <span>Generar Cotización e Imprimir</span>
+            </button>
+        </section>
+
+        <!-- Estructura de la Cotización Oculta (Visible solo en impresión) -->
+        <div id="quote-output" class="quotation-page hidden p-8 bg-white border border-gray-300 rounded-lg">
+            <div class="flex justify-between items-center mb-6 border-b pb-4 border-solar-blue">
+                <h1 class="text-3xl font-extrabold text-solar-blue">COTIZACIÓN SOLAR</h1>
+                <div class="text-right">
+                    <p class="text-lg font-semibold">Fecha: <span id="quoteDate"></span></p>
+                    <p class="text-sm text-gray-600">Moneda: CLP (Pesos Chilenos)</p>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4 text-gray-800">1. Datos del Proyecto</h2>
+            <table class="w-full text-left mb-8 border border-gray-300 rounded-lg">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-3">Concepto</th>
+                        <th class="p-3">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="p-3">Potencia Nominal del Sistema (kWp)</td><td id="q_power" class="p-3 font-semibold"></td></tr>
+                    <tr><td class="p-3">Costo Equipo Base (CLP/W)</td><td id="q_cost_per_watt" class="p-3 font-semibold"></td></tr>
+                    <tr><td class="p-3">Margen de Ganancia Aplicado</td><td id="q_margin" class="p-3 font-semibold"></td></tr>
+                </tbody>
+            </table>
+
+            <h2 class="text-xl font-bold mb-4 text-gray-800">2. Detalle de Costos (CLP)</h2>
+            <table class="w-full text-left mb-8 border border-gray-300 rounded-lg">
+                <thead class="bg-solar-blue text-white">
+                    <tr>
+                        <th class="p-3">Descripción</th>
+                        <th class="p-3 text-right">Monto (CLP)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="p-3 font-medium">A. Costo de Equipos (Paneles, Inversor, Estructuras)</td><td id="q_equipment_cost" class="p-3 text-right font-medium"></td></tr>
+                    <tr><td class="p-3 font-medium">B. Costo Fijo (Instalación, Mano de Obra, Permisos)</td><td id="q_install_cost" class="p-3 text-right font-medium"></td></tr>
+                    <tr class="bg-gray-100 font-bold"><td class="p-3">C. Subtotal Costo Proyecto (A + B)</td><td id="q_subtotal" class="p-3 text-right"></td></tr>
+                    <tr><td class="p-3 font-medium text-green-700">D. Ganancia de la Empresa (Margen Aplicado)</td><td id="q_profit" class="p-3 text-right font-medium text-green-700"></td></tr>
+                    <tr class="bg-solar-yellow font-extrabold text-solar-blue border-t-2 border-solar-blue"><td class="p-3 text-xl">PRECIO FINAL DE VENTA AL CLIENTE (C + D)</td><td id="q_final_price" class="p-3 text-xl text-right"></td></tr>
+                </tbody>
+            </table>
+
+            <footer class="text-center mt-10 text-gray-600 text-sm border-t pt-4">
+                <p>Esta cotización es una estimación y está sujeta a la visita técnica final.</p>
+                <p>Validez: 30 días. Todos los valores expresados en Pesos Chilenos (CLP).</p>
+            </footer>
+        </div>
+
+    </div>
+
+    <script>
+        // Función para formatear un número a CLP (con puntos como separador de miles)
+        const formatCLP = (number) => {
+            if (isNaN(number) || number === null) return '$ 0';
+            const formatter = new Intl.NumberFormat('es-CL', {
+                style: 'currency',
+                currency: 'CLP',
+                minimumFractionDigits: 0,
+            });
+            return formatter.format(number).replace('CLP', '').trim();
+        };
+
+        // Función principal de cálculo
+        const calculateCosts = () => {
+            // 1. Obtener valores de entrada, asegurando que son números
+            const systemPowerKw = parseFloat(document.getElementById('systemPowerKw').value) || 0;
+            const costPerWattClp = parseFloat(document.getElementById('costPerWattClp').value) || 0;
+            const installCostFixed = parseFloat(document.getElementById('installCostFixed').value) || 0;
+            const profitMarginPercent = parseFloat(document.getElementById('profitMarginPercent').value) || 0;
+
+            // 2. Cálculos
+            const systemPowerWatt = systemPowerKw * 1000;
+
+            // Costo de Equipos: Potencia total (W) * Costo por Watt
+            const equipmentCost = systemPowerWatt * costPerWattClp;
+
+            // Costo Total del Proyecto (sin margen): Equipos + Instalación Fija
+            const totalProjectCost = equipmentCost + installCostFixed;
+
+            // Margen de Ganancia: Costo Total * (Margen %)
+            const profitAmount = totalProjectCost * (profitMarginPercent / 100);
+
+            // Precio Final: Costo Total + Margen
+            const finalClientPrice = totalProjectCost + profitAmount;
+
+            // 3. Mostrar Resultados en el Resumen
+            document.getElementById('equipmentCostDisplay').textContent = formatCLP(equipmentCost);
+            document.getElementById('totalProjectCostDisplay').textContent = formatCLP(totalProjectCost);
+            document.getElementById('finalClientPriceDisplay').textContent = formatCLP(finalClientPrice);
+
+            // 4. Actualizar campos de la cotización para impresión (antes de imprimir)
+            updateQuoteData({
+                systemPowerKw,
+                costPerWattClp,
+                installCostFixed,
+                profitMarginPercent,
+                equipmentCost,
+                totalProjectCost,
+                profitAmount,
+                finalClientPrice
+            });
+        };
+
+        // Función para actualizar los datos en el bloque de cotización
+        const updateQuoteData = (data) => {
+            document.getElementById('quoteDate').textContent = new Date().toLocaleDateString('es-CL');
+            document.getElementById('q_power').textContent = `${data.systemPowerKw.toFixed(2)} kWp`;
+            document.getElementById('q_cost_per_watt').textContent = formatCLP(data.costPerWattClp) + '/W';
+            document.getElementById('q_margin').textContent = `${data.profitMarginPercent.toFixed(1)}%`;
+
+            document.getElementById('q_equipment_cost').textContent = formatCLP(data.equipmentCost);
+            document.getElementById('q_install_cost').textContent = formatCLP(data.installCostFixed);
+            document.getElementById('q_subtotal').textContent = formatCLP(data.totalProjectCost);
+            document.getElementById('q_profit').textContent = formatCLP(data.profitAmount);
+            document.getElementById('q_final_price').textContent = formatCLP(data.finalClientPrice);
+        };
+
+        // Función para preparar la cotización e imprimir
+        const prepareAndPrintQuote = () => {
+            // Asegurarse de que el cálculo esté actualizado antes de imprimir
+            calculateCosts();
+
+            // Llama a la función de impresión nativa del navegador, que usará @media print
+            window.print();
+        };
+
+        // Inicializar el cálculo al cargar la página
+        window.onload = () => {
+            calculateCosts();
+        };
+
+    </script>
+</body>
+</html>
